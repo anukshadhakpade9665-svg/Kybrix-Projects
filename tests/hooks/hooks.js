@@ -1,19 +1,28 @@
-const { Before, After, setDefaultTimeout, Status } = require('@cucumber/cucumber');
+const { BeforeAll, AfterAll, Before, After, setDefaultTimeout, Status } = require('@cucumber/cucumber');
 const { chromium } = require('playwright');
+const { LoginPage } = require('../page_object/login');
 
 setDefaultTimeout(60000);
 
-Before(async function () {
-    this.browser = await chromium.launch({
+let browser; 
+let page;    
+
+BeforeAll(async () => {
+    browser = await chromium.launch({
         headless: false,
         args: ['--start-maximized']
     });
 
-    const context = await this.browser.newContext({
-        viewport: null
-    });
+    const context = await browser.newContext({ viewport: null });
+    page = await context.newPage();
+    await context.clearCookies();
+    page.setDefaultTimeout(30000);
+});
 
-    this.page = await context.newPage();
+Before(async function () {
+    this.page = page; 
+    this.loginPage = new LoginPage(this.page);
+    this.page.setDefaultTimeout(40000);
 });
 
 After(async function (scenario) {
@@ -21,5 +30,9 @@ After(async function (scenario) {
         const screenshot = await this.page.screenshot();
         await this.attach(screenshot, 'image/png');
     }
-    await this.browser.close();
 });
+
+AfterAll(async () => {
+    await browser.close(); 
+});
+
